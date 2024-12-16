@@ -27,29 +27,29 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-    const int64_t t_main_start_us = ggml_time_us();
+    // const int64_t t_main_start_us = ggml_time_us();
 
     int64_t t_quantize_us = 0;
 
     // load the model
     {
-        const int64_t t_start_us = ggml_time_us();
+        // const int64_t t_start_us = ggml_time_us();
 
         if (!clip_model_quantize(fname_inp.c_str(), fname_out.c_str(), itype)) {
             fprintf(stderr, "%s: failed to quantize model from '%s'\n", __func__, fname_inp.c_str());
             return 1;
         }
 
-        t_quantize_us = ggml_time_us() - t_start_us;
+        // t_quantize_us = ggml_time_us() - t_start_us;
     }
 
     // report timing
     {
-        const int64_t t_main_end_us = ggml_time_us();
+        // const int64_t t_main_end_us = ggml_time_us();
 
         printf("\n");
-        printf("%s: quantize time = %8.2f ms\n", __func__, t_quantize_us / 1000.0f);
-        printf("%s:    total time = %8.2f ms\n", __func__, (t_main_end_us - t_main_start_us) / 1000.0f);
+        // printf("%s: quantize time = %8.2f ms\n", __func__, t_quantize_us / 1000.0f);
+        // printf("%s:    total time = %8.2f ms\n", __func__, (t_main_end_us - t_main_start_us) / 1000.0f);
     }
 
     return 0;

@@ -2,17 +2,14 @@
 #define CLIP_H
 
 #ifdef _WIN32
-#ifdef CLIP_SHARED
+#ifdef CLIP_BUILD
 #define CLIP_API __declspec(dllexport)
 #else
-#define CLIP_API
+#define CLIP_API __declspec(dllimport)
 #endif
 #else
 #define CLIP_API
 #endif
-
-
-//#define CLIP_API
 
 #include "ggml/ggml.h"
 #include <stddef.h>

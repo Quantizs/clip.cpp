@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
-#include <pthread.h>
+// #include <pthread.h>
 #include <regex>
 #include <stdexcept>
 #include <thread>
@@ -682,26 +682,26 @@ clip_image_u8 * clip_image_u8_make() { return new clip_image_u8(); }
 
 clip_image_f32 * clip_image_f32_make() { return new clip_image_f32(); }
 
-void clip_image_u8_clean(clip_image_u8* img) {
-    if (img->data){
-	delete[] img->data;
-	img->data = NULL;
+void clip_image_u8_clean(clip_image_u8 * img) {
+    if (img->data) {
+        delete[] img->data;
+        img->data = NULL;
     }
 }
 
-void clip_image_f32_clean(clip_image_f32* res) {
-    if (res->data){
-	delete[] res->data;
-	res->data = NULL;
+void clip_image_f32_clean(clip_image_f32 * res) {
+    if (res->data) {
+        delete[] res->data;
+        res->data = NULL;
     }
 }
 
-void clip_image_u8_free(clip_image_u8* img) {
+void clip_image_u8_free(clip_image_u8 * img) {
     clip_image_u8_clean(img);
     delete img;
 }
 
-void clip_image_f32_free(clip_image_f32* res) {
+void clip_image_f32_free(clip_image_f32 * res) {
     clip_image_f32_clean(res);
     delete res;
 }
@@ -805,8 +805,8 @@ typedef struct {
 // Structure to hold the range of images to be processed by a thread
 // closed interval
 typedef struct {
-    ImageData* start;
-    ImageData* end;
+    ImageData * start;
+    ImageData * end;
 } ImageDataRange;
 
 // Function to preprocess a single image in a thread
@@ -818,17 +818,19 @@ void * preprocess_image(void * arg) {
 
     for (ImageData * imageData = imageData_start; imageData <= imageData_end; imageData++) {
         const clip_image_u8 * input = imageData->input;
-        clip_image_f32 * resized = imageData->resized; 
+        clip_image_f32 * resized = imageData->resized;
         const clip_ctx * ctx = imageData->ctx;
 
         // Call the original preprocess function on the image
-        clip_image_preprocess(ctx, input, resized); 
+        clip_image_preprocess(ctx, input, resized);
     }
-    
-    pthread_exit(NULL);
+
+    // pthread_exit(NULL);
+    return nullptr;
 }
 
 // Function to batch-preprocess multiple images i
+/*
 void clip_image_batch_preprocess(const clip_ctx * ctx, const int n_threads, const clip_image_u8_batch * img_inputs,
                                  clip_image_f32_batch * imgs_resized) {
     imgs_resized->size = img_inputs->size;
@@ -850,7 +852,7 @@ void clip_image_batch_preprocess(const clip_ctx * ctx, const int n_threads, cons
         std::vector<pthread_t> threads(num_threads);
         std::vector<ImageData> imageData(img_inputs->size);
         ImageDataRange* imageDataRange = new ImageDataRange[num_threads]();
-        
+
         for (t = 0; t < num_threads; t++) {
             int start_index = t * images_per_thread;
             int end_index = (t == num_threads - 1) ? img_inputs->size : start_index + images_per_thread;
@@ -873,6 +875,7 @@ void clip_image_batch_preprocess(const clip_ctx * ctx, const int n_threads, cons
         }
     }
 }
+*/
 
 void clip_free(clip_ctx * ctx) {
     ggml_free(ctx->ctx);
@@ -1407,8 +1410,8 @@ bool clip_compare_text_and_image(const clip_ctx * ctx, const int n_threads, cons
 
     // prepare image and text vectors
     const int projection_dim = ctx->vision_model.hparams.projection_dim;
-    float img_vec[projection_dim];
-    float txt_vec[projection_dim];
+    std::vector<float> img_vec(projection_dim);
+    std::vector<float> txt_vec(projection_dim);
 
     // tokenize and encode text
     clip_tokens tokens;
@@ -1416,7 +1419,7 @@ bool clip_compare_text_and_image(const clip_ctx * ctx, const int n_threads, cons
         return false;
     }
 
-    if (!clip_text_encode(ctx, n_threads, &tokens, txt_vec, true)) {
+    if (!clip_text_encode(ctx, n_threads, &tokens, txt_vec.data(), true)) {
         return false;
     }
 
@@ -1427,12 +1430,12 @@ bool clip_compare_text_and_image(const clip_ctx * ctx, const int n_threads, cons
         return false;
     }
 
-    if (!clip_image_encode(ctx, n_threads, &img_res, img_vec, true)) {
+    if (!clip_image_encode(ctx, n_threads, &img_res, img_vec.data(), true)) {
         return false;
     }
 
     // compute similarity
-    *score = clip_similarity_score(img_vec, txt_vec, projection_dim);
+    *score = clip_similarity_score(img_vec.data(), txt_vec.data(), projection_dim);
 
     return true;
 }
@@ -1502,25 +1505,25 @@ bool clip_zero_shot_label_image(struct clip_ctx * ctx, const int n_threads, cons
 
     clip_image_preprocess(ctx, input_img, &img_res);
 
-    float img_vec[vec_dim];
-    if (!clip_image_encode(ctx, n_threads, &img_res, img_vec, false)) {
+    std::vector<float> img_vec(vec_dim);
+    if (!clip_image_encode(ctx, n_threads, &img_res, img_vec.data(), false)) {
         return false;
     }
 
     // encode texts and compute similarities
-    float txt_vec[vec_dim];
-    float similarities[n_labels];
+    std::vector<float> txt_vec(vec_dim);
+    std::vector<float> similarities(n_labels);
 
     for (int i = 0; i < n_labels; i++) {
         const auto & text = labels[i];
         clip_tokens tokens;
         clip_tokenize(ctx, text, &tokens);
-        clip_text_encode(ctx, n_threads, &tokens, txt_vec, false);
-        similarities[i] = clip_similarity_score(img_vec, txt_vec, vec_dim);
+        clip_text_encode(ctx, n_threads, &tokens, txt_vec.data(), false);
+        similarities[i] = clip_similarity_score(img_vec.data(), txt_vec.data(), vec_dim);
     }
 
     // apply softmax and sort scores
-    softmax_with_sorting(similarities, n_labels, scores, indices);
+    softmax_with_sorting(similarities.data(), n_labels, scores, indices);
 
     return true;
 }
